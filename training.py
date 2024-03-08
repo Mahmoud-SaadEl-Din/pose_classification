@@ -3,6 +3,7 @@ import time
 import os
 from tqdm import tqdm
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 class Trainer():
@@ -23,7 +24,7 @@ class Trainer():
         #     print("Let's use", torch.cuda.device_count(), "GPUs!")
         #     self.model = nn.DataParallel(self.model)
         self.criterion = self.criterion.to(self.device)
-        self.logger = SummaryWriter("Logs_no_norm")
+        self.logger = SummaryWriter("Logs_NN")
 
 
 
@@ -34,6 +35,11 @@ class Trainer():
         for epoch in tqdm(range(self.epochs), desc="Epochs progress bar"):
             # Each epoch has a training and validation phase
             train_acc, train_loss, train_tn, train_fp, train_fn, train_tp, train_precision, train_recall, train_f1 = self.train_one_epoch()
+            if epoch % 10 == 0:
+                # Access gradients
+                for name, param in self.model.named_parameters():
+                    if param.grad is not None:
+                        print(f'Parameter: {name}, Gradient norm: {param.grad.norm().item()}')
             val_acc, val_loss, val_tn, val_fp, val_fn, val_tp, val_precision, val_recall, val_f1 = self.val_one_epoch()
             self.logger.add_scalars('loss', {'train':train_loss, 'val':val_loss}, epoch)
             self.logger.add_scalars('Acc', {'train':train_acc, 'val':val_acc}, epoch)
@@ -41,9 +47,6 @@ class Trainer():
             self.logger.add_scalars('PR_val', {'val_precision':val_precision, 'val_recall':val_recall, 'val_f1':val_f1}, epoch)
             self.logger.add_scalars('confusion_matrix_train', {'train_TN':train_tn, 'train_FP':train_fp, 'train_FN':train_fn,'train_TP':train_tp}, epoch)
             self.logger.add_scalars('confusion_matrix_val', {'val_TN':val_tn, 'val_FP':val_fp, 'val_FN':val_fn, 'val_TP': val_tp}, epoch)
-
-            
-            
 
             # deep copy the model
             if val_acc > best_acc:
@@ -75,9 +78,10 @@ class Trainer():
             self.optimizer.zero_grad()
 
             outputs = self.model(inputs)
-            _, preds = torch.max(outputs, 1)
-            loss = self.criterion(outputs, labels)
-            all_preds.extend(preds.cpu().numpy())
+            preds = torch.round(outputs)
+            labels = labels.view(-1, 1)
+            loss = F.binary_cross_entropy_with_logits(outputs, labels.float())
+            all_preds.extend(preds.detach().cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
             loss.backward()
@@ -120,9 +124,10 @@ class Trainer():
             self.optimizer.zero_grad()
 
             outputs = self.model(inputs)
-            _, preds = torch.max(outputs, 1)
-            loss = self.criterion(outputs, labels)
-            all_preds.extend(preds.cpu().numpy())
+            preds = torch.round(outputs)
+            labels = labels.view(-1, 1)
+            loss = F.binary_cross_entropy_with_logits(outputs, labels.float())
+            all_preds.extend(preds.detach().cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
             # statistics
             running_loss += loss.item() * inputs.size(0)

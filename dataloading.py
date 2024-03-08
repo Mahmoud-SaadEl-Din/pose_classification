@@ -1,38 +1,33 @@
-from torchvision import datasets, transforms
-import os
-import torchvision
 import torch
-# Data augmentation and normalization for training
-# Just normalization for validation
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.Resize((512,512)),
-        transforms.ToTensor(),
-        # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val': transforms.Compose([
-        transforms.Resize((512,512)),
-        transforms.ToTensor(),
-        # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
+from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
+from PIL import Image
+import os
+from os.path import join
+import csv
+import pandas as pd
 
-data_dir = 'poses_data'
-image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
-                                          data_transforms[x])
-                  for x in ['train', 'val']}
-dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=16, # best batch size here is 16
-                                             shuffle=True, num_workers=8) # best num_workers here is 8
-              for x in ['train', 'val']}
-dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-class_names = image_datasets['train'].classes
-print(class_names)
+class NN_pose_dataset(Dataset):
+    def __init__(self, data_dir):
+        self.data = pd.read_csv(data_dir,delimiter=',')
+        self.size = len(self.data.index) 
+
+    def __len__(self):
+        return self.size
+
+    def __getitem__(self, idx):
+        row = self.data.loc[idx].to_list()   
+        return torch.FloatTensor(row[2:26]), 1 if row[1]=="pose" else 0  # Assuming filenames are unique identifiers
 
 
-# # Get a batch of training data
-# inputs, classes = next(iter(dataloaders['train']))
+# Specify the path to your test data
+NN_dataloaders = {}
+NN_dataset_sizes = {}
+for set in ["train","val"]:
+    data_dir = f'{set}_poses_normalized_no_feature_selection.csv'
 
-# # Make a grid from batch
-# out = torchvision.utils.make_grid(inputs)
-
-# imshow(out, title=[class_names[x] for x in classes])
+    # Create a custom test dataset
+    dataset = NN_pose_dataset(data_dir)
+    NN_dataset_sizes[set] = dataset.size
+    # Create a data loader for the test dataset
+    NN_dataloaders[set] = DataLoader(dataset, batch_size=32, shuffle=True)
