@@ -16,7 +16,7 @@ def normalize_pose(image_name,class_,train_or_val):
     return results
 
 a = []
-r = "poses_data"
+r = "new_poses_data"
 classes_ = ["pose","not_pose"]
 for set in ["train","val"]:
     for class_ in classes_:
@@ -24,7 +24,7 @@ for set in ["train","val"]:
             l = normalize_pose(image_name, class_,set)
             a.append(l)    
     my_df = pd.DataFrame(a)
-    my_df.to_csv(f'{set}_poses_normalized_no_feature_selection.csv', index=False, header=False)
+    my_df.to_csv(f'small_{set}_poses_normalized_no_feature_selection.csv', index=False, header=False)
 
 
 

@@ -3,9 +3,9 @@ import os,time
 from os.path import join
 
 def detectron_poses():
-    in_dir = "/media/HDD2/VITON/pose_classification/poses_data/val/not_pose"
-    out_dir = "/media/HDD2/VITON/pose_classification/poses_data/val/not_pose_img"
-    json_dir = "/media/HDD2/VITON/pose_classification/poses_data/val/not_pose_json"
+    in_dir = "/media/HDD2/VITON/pose_classification/new_poses_data/train/not_pose"
+    out_dir = "/media/HDD2/VITON/pose_classification/new_poses_data/train/not_pose_img"
+    json_dir = "/media/HDD2/VITON/pose_classification/new_poses_data/train/not_pose_json"
     start = time.time()
     pose_dir(in_dir, out_dir, json_dir)
     end = time.time()
